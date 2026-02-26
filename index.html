@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planogram Finder</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  padding: 15px;
+  background: #f4f6f8;
+}
+
+h2 {
+  margin-bottom: 10px;
+}
+
+select, input {
+  width: 100%;
+  padding: 12px;
+  margin: 6px 0;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+label {
+  font-weight: bold;
+  margin-top: 10px;
+  display: block;
+}
+
+.card {
+  background: white;
+  padding: 14px;
+  margin-top: 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+}
+
+.card a {
+  text-decoration: none;
+  font-weight: bold;
+  color: #0b57d0;
+  display: block;
+}
+
+.searchBox {
+  position: sticky;
+  top: 0;
+  background: #f4f6f8;
+  padding-top: 10px;
+  z-index: 2;
+}
+
+</style>
+</head>
+
+<body>
+
+<h2>Planogram Finder</h2>
+
+<label>Channel</label>
+<select id="channel" onchange="updateGroups()">
+  <option value="">Select Channel</option>
+</select>
+
+<label>Group</label>
+<select id="group" onchange="updateSubfolder()">
+  <option value="">Select Group</option>
+</select>
+
+<div id="categorySection" style="display:none">
+
+  <label id="subfolderLabel"></label>
+
+  <div class="searchBox">
+    <input type="text" id="search" placeholder="Search category..." onkeyup="filterCategories()">
+  </div>
+
+  <select id="category" onchange="showFiles()"></select>
+
+</div>
+
+<div id="results"></div>
+
+<script>
+
+// 🔗 PUT YOUR CSV LINKS HERE
+const structureURL = "https://docs.google.com/spreadsheets/d/15KrrSbaYxPgIC0VzM-2BZBnNHQY0DoY9iyo8Eyq520Y/edit?gid=1129509567#gid=1129509567";
+const fileURL = "https://docs.google.com/spreadsheets/d/1mETbNwRaIHuUzudOxHWAoJOmfzCTycsWNXK-4CEKmMY/edit?gid=1496488285#gid=1496488285";
+
+let structureData = [];
+let fileData = [];
+let categoryList = [];
+
+Promise.all([
+  fetch(structureURL).then(r=>r.text()),
+  fetch(fileURL).then(r=>r.text())
+]).then(([s1,s2])=>{
+  structureData = parseCSV(s1).map(transformStructure).filter(Boolean);
+  fileData = parseCSV(s2);
+  initChannels();
+});
+
+function parseCSV(text){
+  const rows = text.split("\n").map(r=>r.split(","));
+  const headers = rows[0];
+  return rows.slice(1).map(r=>{
+    let obj={};
+    headers.forEach((h,i)=>obj[h.trim()]=r[i]);
+    return obj;
+  });
+}
+
+function transformStructure(row){
+  if(!row["Full Path"]) return null;
+
+  const parts = row["Full Path"].split("/");
+
+  if(parts.length < 5) return null;
+
+  return {
+    Channel: parts[0].replace(" Channel","").trim(),
+    Group: parts[1].match(/^(\d+)/)[1],
+    Subfolder: parts[3].trim(),
+    Category: parts[4].trim()
+  };
+}
+
+function unique(field, filter={}){
+  return [...new Set(
+    structureData
+      .filter(d=>Object.keys(filter).every(k=>!filter[k]||d[k]===filter[k]))
+      .map(d=>d[field])
+  )];
+}
+
+function initChannels(){
+  unique("Channel").forEach(v=>{
+    channel.innerHTML += `<option value="${v}">${v}</option>`;
+  });
+}
+
+function updateGroups(){
+  group.innerHTML = "<option value=''>Select Group</option>";
+  unique("Group",{Channel:channel.value}).forEach(v=>{
+    group.innerHTML += `<option value="${v}">${v}</option>`;
+  });
+
+  categorySection.style.display = "none";
+  results.innerHTML = "";
+}
+
+function updateSubfolder(){
+  const matches = structureData.filter(d =>
+    d.Channel===channel.value && d.Group===group.value
+  );
+
+  if(matches.length===0) return;
+
+  const subfolder = matches[0].Subfolder;
+
+  subfolderLabel.innerText = subfolder;
+  categorySection.style.display = "block";
+
+  categoryList = unique("Category",{Channel:channel.value, Group:group.value});
+
+  populateCategoryDropdown(categoryList);
+}
+
+function populateCategoryDropdown(list){
+  category.innerHTML = "<option value=''>Select Category</option>";
+  list.forEach(c=>{
+    category.innerHTML += `<option value="${c}">${c}</option>`;
+  });
+}
+
+function filterCategories(){
+  const term = search.value.toLowerCase();
+  const filtered = categoryList.filter(c=>c.toLowerCase().includes(term));
+  populateCategoryDropdown(filtered);
+}
+
+function showFiles(){
+  const resultsList = fileData.filter(f =>
+    f.Channel===channel.value &&
+    f.Group===group.value &&
+    f.Category===category.value
+  );
+
+  results.innerHTML = "";
+
+  if(resultsList.length===0){
+    results.innerHTML = "<div class='card'>No files found</div>";
+    return;
+  }
+
+  resultsList.forEach(r=>{
+    results.innerHTML += `
+      <div class="card">
+        <a href="${r.Link}" target="_blank">
+          📄 ${r["File Name"] || r.Category}
+        </a>
+      </div>
+    `;
+  });
+}
+
+</script>
+
+</body>
+</html>
