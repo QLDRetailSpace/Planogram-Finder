@@ -114,17 +114,35 @@ function parseCSV(text){
 }
 
 function transformStructure(row){
+
   if(!row["Full Path"]) return null;
 
-  const parts = row["Full Path"].split("/");
+  const parts = row["Full Path"]
+    .split("/")
+    .map(p => p.trim())
+    .filter(p => p !== "");
 
-  if(parts.length < 5) return null;
+  // Must at least have Channel + Group + Category
+  if(parts.length < 3) return null;
+
+  // Channel (remove word "Channel")
+  const channel = parts[0].replace(" Channel","").trim();
+
+  // Group number (extract leading digit)
+  const groupMatch = parts[1].match(/^(\d+)/);
+  const group = groupMatch ? groupMatch[1] : parts[1];
+
+  // Category = LAST folder
+  const category = parts[parts.length - 1];
+
+  // Subfolder label = folder before category (if exists)
+  const subfolder = parts.length >= 4 ? parts[parts.length - 2] : "Categories";
 
   return {
-    Channel: parts[0].replace(" Channel","").trim(),
-    Group: parts[1].match(/^(\d+)/)[1],
-    Subfolder: parts[3].trim(),
-    Category: parts[4].trim()
+    Channel: channel,
+    Group: group,
+    Subfolder: subfolder,
+    Category: category
   };
 }
 
@@ -212,3 +230,4 @@ function showFiles(){
 </body>
 
 </html>
+
