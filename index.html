@@ -121,10 +121,29 @@ function updateCategories(){
 // ================= SHOW FILES =================
 function showFiles(){
 
+  if(fileData.length === 0) return;
+
+  // 🔍 detect column names dynamically
+  const keys = Object.keys(fileData[0]);
+
+  const channelKey   = keys.find(k => k.toLowerCase().includes("channel"));
+  const groupKey     = keys.find(k => k.toLowerCase().includes("group"));
+  const categoryKey  = keys.find(k => k.toLowerCase().includes("category"));
+  const linkKey      = keys.find(k => k.toLowerCase().includes("link"));
+  const fileNameKey  = keys.find(k => k.toLowerCase().includes("file"));
+
+  console.log("Detected keys:", {
+    channelKey, groupKey, categoryKey, linkKey, fileNameKey
+  });
+
+  const selectedChannel  = clean(channel.value);
+  const selectedGroup    = clean(group.value);
+  const selectedCategory = clean(category.value);
+
   const matches = fileData.filter(f =>
-    clean(f.Channel) === clean(channel.value) &&
-    clean(f.Group) === clean(group.value) &&
-    clean(f.Category) === clean(category.value)
+    clean(f[channelKey])  === selectedChannel &&
+    clean(f[groupKey])    === selectedGroup &&
+    clean(f[categoryKey]) === selectedCategory
   );
 
   results.innerHTML = "";
@@ -135,11 +154,15 @@ function showFiles(){
   }
 
   matches.forEach(r=>{
+    const displayName = r[fileNameKey] || r[categoryKey];
+
     results.innerHTML += `
-  <div class="card">
-    <a href="${r.Link}" target="_blank">📄 ${r["File Name"] || r.Category}</a>
-  </div>
-`;
+      <div class="card">
+        <a href="${r[linkKey]}" target="_blank">
+          📄 ${displayName}
+        </a>
+      </div>
+    `;
   });
 }
 
@@ -147,4 +170,5 @@ function showFiles(){
 
 </body>
 </html>
+
 
