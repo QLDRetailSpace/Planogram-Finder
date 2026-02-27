@@ -201,14 +201,16 @@ function unique(field, filter={}){
 }
 
 function initChannels(){
-  const vals = unique("Channel");
+  const vals = [...new Set(structureData.map(d => d.Channel))];
+
   console.log("Channels found:", vals);
+
+  channel.innerHTML = "<option value=''>Select Channel</option>";
 
   vals.forEach(v=>{
     channel.innerHTML += `<option value="${v}">${v}</option>`;
   });
 }
-
 function updateGroups(){
   group.innerHTML = "<option value=''>Select Group</option>";
 
@@ -312,5 +314,6 @@ function showFiles(){
     `;
   });
 }
+
 
 
