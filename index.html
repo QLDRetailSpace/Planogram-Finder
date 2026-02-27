@@ -2,26 +2,50 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QLD Retail Space Planograms</title>
+<title>Planogram Finder</title>
 
 <style>
 body { font-family: Arial; padding: 15px; background:#f4f6f8; }
-select, input { width:100%; padding:12px; margin:6px 0; border-radius:8px; border:1px solid #ccc; }
-label { font-weight:bold; margin-top:10px; display:block; }
-.card { background:#fff; padding:14px; margin-top:10px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.08); }
-.card a { text-decoration:none; font-weight:bold; color:#0b57d0; }
+
+select, input {
+  width:100%;
+  padding:12px;
+  margin:6px 0;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+
+label {
+  font-weight:bold;
+  margin-top:10px;
+  display:block;
+}
+
+.card {
+  background:#fff;
+  padding:14px;
+  margin-top:10px;
+  border-radius:10px;
+  box-shadow:0 2px 5px rgba(0,0,0,0.08);
+}
+
+.card a {
+  text-decoration:none;
+  font-weight:bold;
+  color:#0b57d0;
+}
 </style>
 </head>
 
 <body>
 
-<h2>QLD Retail Space Planograms</h2>
+<h2>Planogram Finder</h2>
 
 <label>Channel</label>
 <select id="channel" onchange="updateGroups()"></select>
 
 <label>Group</label>
-<select id="Group" onchange="updateCategories()"></select>
+<select id="group" onchange="updateCategories()"></select>
 
 <label>Category</label>
 <select id="category" onchange="showFiles()"></select>
@@ -40,80 +64,103 @@ let fileData = [];
 // ================= CSV PARSER =================
 function parseCSV(text){
   const rows = text.trim().split("\n");
-  const headers = rows[0].split(",").map(h => h.replace(/^\uFEFF/, "").trim());
 
-  return rows.slice(1).map(r=>{
-    const values = r.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
-    let obj={};
-    headers.forEach((h,i)=> obj[h]=values[i]?.replace(/"/g,""));
+  const headers = rows[0]
+    .split(",")
+    .map(h => h.replace(/^\uFEFF/, "").trim());
+
+  return rows.slice(1).map(row => {
+    const values = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+
+    let obj = {};
+    headers.forEach((h,i)=>{
+      obj[h] = values ? values[i]?.replace(/"/g,"") : "";
+    });
+
     return obj;
   });
 }
 
 // ================= LOAD DATA =================
 Promise.all([
-  fetch(structureURL).then(r=>r.text()),
-  fetch(fileURL).then(r=>r.text())
-]).then(([s1,s2])=>{
+  fetch(structureURL).then(r => r.text()),
+  fetch(fileURL).then(r => r.text())
+]).then(([s1, s2]) => {
 
   const structureRaw = parseCSV(s1);
   const fileRaw = parseCSV(s2);
 
-  // build structure from folder paths
-  structureData = structureRaw.map(row=>{
-    const key = Object.keys(row).find(k=>k.toLowerCase().includes("path"));
-    const parts = row[key].split("/").map(p=>p.trim());
-    return {
-      Channel: parts[0].replace(" Channel","").toUpperCase(),
-      Category: parts[parts.length-1]
-    };
-  });
-
+  structureData = structureRaw;
   fileData = fileRaw;
 
   initChannels();
 });
 
-// ================= CLEANERS =================
-function clean(v){ return (v||"").toString().toLowerCase().trim(); }
-
-// ================= CHANNEL =================
-function initChannels(){
-  const channels = [...new Set(structureData.map(x=>x.Channel))];
-  channel.innerHTML = "<option value=''>Select Channel</option>";
-  channels.forEach(c=> channel.innerHTML += `<option value="${c}">${c}</option>`);
+// ================= CLEAN HELPERS =================
+function clean(v){
+  return (v || "").toString().toLowerCase().trim();
 }
 
-// ================= GROUP =================
+// ================= CHANNEL DROPDOWN =================
+function initChannels(){
+
+  const keys = Object.keys(fileData[0]);
+  const channelKey = keys.find(k => k.toLowerCase().includes("channel"));
+
+  const channels = [...new Set(fileData.map(r => r[channelKey]))];
+
+  channel.innerHTML = "<option value=''>Select Channel</option>";
+
+  channels.forEach(c => {
+    channel.innerHTML += `<option value="${c}">${c}</option>`;
+  });
+}
+
+// ================= GROUP DROPDOWN =================
 function updateGroups(){
+
+  const keys = Object.keys(fileData[0]);
+  const channelKey = keys.find(k => k.toLowerCase().includes("channel"));
+  const groupKey   = keys.find(k => k.toLowerCase().includes("group"));
 
   const groups = [...new Set(
     fileData
-      .filter(f => clean(f.Channel) === clean(channel.value))
-      .map(f => f.Group)
+      .filter(r => clean(r[channelKey]) === clean(channel.value))
+      .map(r => r[groupKey])
   )];
 
   group.innerHTML = "<option value=''>Select Group</option>";
-  groups.forEach(g=> group.innerHTML += `<option value="${g}">${g}</option>`);
+
+  groups.forEach(g=>{
+    group.innerHTML += `<option value="${g}">${g}</option>`;
+  });
 
   category.innerHTML = "";
   results.innerHTML = "";
 }
 
-// ================= CATEGORY =================
+// ================= CATEGORY DROPDOWN =================
 function updateCategories(){
 
-  const cats = [...new Set(
+  const keys = Object.keys(fileData[0]);
+  const channelKey  = keys.find(k => k.toLowerCase().includes("channel"));
+  const groupKey    = keys.find(k => k.toLowerCase().includes("group"));
+  const categoryKey = keys.find(k => k.toLowerCase().includes("category"));
+
+  const categories = [...new Set(
     fileData
-      .filter(f =>
-        clean(f.Channel) === clean(channel.value) &&
-        clean(f.Group) === clean(group.value)
+      .filter(r =>
+        clean(r[channelKey]) === clean(channel.value) &&
+        clean(r[groupKey]) === clean(group.value)
       )
-      .map(f => f.Category)
+      .map(r => r[categoryKey])
   )];
 
   category.innerHTML = "<option value=''>Select Category</option>";
-  cats.forEach(c=> category.innerHTML += `<option value="${c}">${c}</option>`);
+
+  categories.forEach(c=>{
+    category.innerHTML += `<option value="${c}">${c}</option>`;
+  });
 
   results.innerHTML = "";
 }
@@ -123,7 +170,6 @@ function showFiles(){
 
   if(fileData.length === 0) return;
 
-  // 🔍 detect column names dynamically
   const keys = Object.keys(fileData[0]);
 
   const channelKey   = keys.find(k => k.toLowerCase().includes("channel"));
@@ -132,18 +178,10 @@ function showFiles(){
   const linkKey      = keys.find(k => k.toLowerCase().includes("link"));
   const fileNameKey  = keys.find(k => k.toLowerCase().includes("file"));
 
-  console.log("Detected keys:", {
-    channelKey, groupKey, categoryKey, linkKey, fileNameKey
-  });
-
-  const selectedChannel  = clean(channel.value);
-  const selectedGroup    = clean(group.value);
-  const selectedCategory = clean(category.value);
-
-  const matches = fileData.filter(f =>
-    clean(f[channelKey])  === selectedChannel &&
-    clean(f[groupKey])    === selectedGroup &&
-    clean(f[categoryKey]) === selectedCategory
+  const matches = fileData.filter(r =>
+    clean(r[channelKey]) === clean(channel.value) &&
+    clean(r[groupKey]) === clean(group.value) &&
+    clean(r[categoryKey]) === clean(category.value)
   );
 
   results.innerHTML = "";
@@ -153,7 +191,7 @@ function showFiles(){
     return;
   }
 
-  matches.forEach(r=>{
+  matches.forEach(r => {
     const displayName = r[fileNameKey] || r[categoryKey];
 
     results.innerHTML += `
@@ -170,8 +208,3 @@ function showFiles(){
 
 </body>
 </html>
-
-
-
-
-
