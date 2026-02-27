@@ -5,51 +5,11 @@
 <title>Planogram Finder</title>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  padding: 15px;
-  background: #f4f6f8;
-}
-
-h2 { margin-bottom: 10px; }
-
-select, input {
-  width: 100%;
-  padding: 12px;
-  margin: 6px 0;
-  font-size: 16px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-}
-
-label {
-  font-weight: bold;
-  margin-top: 10px;
-  display: block;
-}
-
-.card {
-  background: white;
-  padding: 14px;
-  margin-top: 10px;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.08);
-}
-
-.card a {
-  text-decoration: none;
-  font-weight: bold;
-  color: #0b57d0;
-  display: block;
-}
-
-.searchBox {
-  position: sticky;
-  top: 0;
-  background: #f4f6f8;
-  padding-top: 10px;
-  z-index: 2;
-}
+body { font-family: Arial; padding: 15px; background:#f4f6f8; }
+select, input { width:100%; padding:12px; margin:6px 0; border-radius:8px; border:1px solid #ccc; }
+label { font-weight:bold; margin-top:10px; display:block; }
+.card { background:#fff; padding:14px; margin-top:10px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.08); }
+.card a { text-decoration:none; font-weight:bold; color:#0b57d0; }
 </style>
 </head>
 
@@ -58,262 +18,132 @@ label {
 <h2>Planogram Finder</h2>
 
 <label>Channel</label>
-<select id="channel" onchange="updateGroups()">
-  <option value="">Select Channel</option>
-</select>
+<select id="channel" onchange="updateGroups()"></select>
 
 <label>Group</label>
-<select id="group" onchange="updateSubfolder()">
-  <option value="">Select Group</option>
-</select>
+<select id="group" onchange="updateCategories()"></select>
 
-<div id="categorySection" style="display:none">
-
-  <label id="subfolderLabel"></label>
-
-  <div class="searchBox">
-    <input type="text" id="search" placeholder="Search category..." onkeyup="filterCategories()">
-  </div>
-
-  <select id="category" onchange="showFiles()"></select>
-
-</div>
+<label>Category</label>
+<select id="category" onchange="showFiles()"></select>
 
 <div id="results"></div>
 
 <script>
 
-// ================================
-// 🔗 YOUR CSV LINKS
-// ================================
+// ================= CSV LINKS =================
 const structureURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0R6jVdyfATmBNYLG2bcy4VF-DxWSLvrVFOe9qepHCCph6OCcIUGOwAkiNRn_TSGM-jr8VgjWC8-PU/pub?gid=1122095800&single=true&output=csv";
-
 const fileURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPSHnZioYj2Xdxx0CNi5VYlzlm0OL5aWAnr_eI9rSyboMnznDUyJzYt1DZ0Vret_CRqxO2aP8fDy9y/pub?gid=1791414175&single=true&output=csv";
 
 let structureData = [];
 let fileData = [];
-let categoryList = [];
 
-// ================================
-// LOAD DATA
-// ================================
-Promise.all([
-  fetch(structureURL).then(r => r.text()),
-  fetch(fileURL).then(r => r.text())
-]).then(([s1, s2]) => {
-
-  console.log("Loaded Sheet1 length:", s1.length);
-  console.log("Loaded Sheet2 length:", s2.length);
-
-  const structureRaw = parseCSV(s1);
-  const fileRaw = parseCSV(s2);
-
-  console.log("Parsed Sheet1 rows:", structureRaw.length);
-  console.log("Parsed Sheet2 rows:", fileRaw.length);
-
-  structureData = structureRaw.map(transformStructure).filter(Boolean);
-  fileData = fileRaw;
-
-  console.log("Transformed structure rows:", structureData.length);
-  console.log("Sample structure row:", structureData[0]);
-
-  initChannels();
-});
-
-// ================================
-// CSV PARSER (BOM SAFE)
-// ================================
+// ================= CSV PARSER =================
 function parseCSV(text){
   const rows = text.trim().split("\n");
+  const headers = rows[0].split(",").map(h => h.replace(/^\uFEFF/, "").trim());
 
-  const headers = rows[0]
-    .split(",")
-    .map(h => h.replace(/^\uFEFF/, "").trim());
-
-  return rows.slice(1).map(row => {
-    const values = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
-
-    let obj = {};
-    headers.forEach((h,i)=>{
-      obj[h] = values ? values[i]?.replace(/"/g,"") : "";
-    });
-
+  return rows.slice(1).map(r=>{
+    const values = r.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+    let obj={};
+    headers.forEach((h,i)=> obj[h]=values[i]?.replace(/"/g,""));
     return obj;
   });
 }
 
-// ================================
-// STRUCTURE TRANSFORM (flexible depth)
-// ================================
-function transformStructure(row){
+// ================= LOAD DATA =================
+Promise.all([
+  fetch(structureURL).then(r=>r.text()),
+  fetch(fileURL).then(r=>r.text())
+]).then(([s1,s2])=>{
 
-  // 🔍 find the correct column dynamically
-  const pathKey = Object.keys(row).find(k =>
-    k.toLowerCase().includes("path")
-  );
+  const structureRaw = parseCSV(s1);
+  const fileRaw = parseCSV(s2);
 
-  const path = row[pathKey];
+  // build structure from folder paths
+  structureData = structureRaw.map(row=>{
+    const key = Object.keys(row).find(k=>k.toLowerCase().includes("path"));
+    const parts = row[key].split("/").map(p=>p.trim());
+    return {
+      Channel: parts[0].replace(" Channel","").toUpperCase(),
+      Category: parts[parts.length-1]
+    };
+  });
 
-  if(!path) return null;
+  fileData = fileRaw;
 
-  const parts = path
-    .split("/")
-    .map(p => p.trim())
-    .filter(p => p !== "");
+  initChannels();
+});
 
-  if(parts.length < 3) return null;
+// ================= CLEANERS =================
+function clean(v){ return (v||"").toString().toLowerCase().trim(); }
 
-  // CHANNEL
-  let channel = parts[0]
-    .replace(/channel/i, "")
-    .trim()
-    .toUpperCase();
-
-  // GROUP (just number)
-  let groupMatch = parts[1].match(/^(\d+)/);
-  let group = groupMatch ? groupMatch[1] : parts[1];
-
-  // CATEGORY = last folder
-  let category = parts[parts.length - 1];
-
-  // SUBFOLDER = second last
-  let subfolder = parts.length >= 4
-    ? parts[parts.length - 2]
-    : "Categories";
-
-  return {
-    Channel: channel,
-    Group: group,
-    Subfolder: subfolder,
-    Category: category
-  };
-}
-
-// ================================
-// DROPDOWN HELPERS
-// ================================
-function unique(field, filter={}){
-  return [...new Set(
-    structureData
-      .filter(d => Object.keys(filter).every(k => !filter[k] || d[k]===filter[k]))
-      .map(d => d[field])
-  )];
-}
-
+// ================= CHANNEL =================
 function initChannels(){
-  const vals = [...new Set(structureData.map(d => d.Channel))];
-
-  console.log("Channels found:", vals);
-
+  const channels = [...new Set(structureData.map(x=>x.Channel))];
   channel.innerHTML = "<option value=''>Select Channel</option>";
-
-  vals.forEach(v=>{
-    channel.innerHTML += `<option value="${v}">${v}</option>`;
-  });
+  channels.forEach(c=> channel.innerHTML += `<option value="${c}">${c}</option>`);
 }
+
+// ================= GROUP =================
 function updateGroups(){
+
+  const groups = [...new Set(
+    fileData
+      .filter(f => clean(f.Channel) === clean(channel.value))
+      .map(f => f.Group)
+  )];
+
   group.innerHTML = "<option value=''>Select Group</option>";
+  groups.forEach(g=> group.innerHTML += `<option value="${g}">${g}</option>`);
 
-  const vals = unique("Group",{Channel:channel.value});
-  console.log("Groups for channel", channel.value, vals);
-
-  vals.forEach(v=>{
-    group.innerHTML += `<option value="${v}">${v}</option>`;
-  });
-
-  categorySection.style.display = "none";
+  category.innerHTML = "";
   results.innerHTML = "";
 }
 
-function updateSubfolder(){
+// ================= CATEGORY =================
+function updateCategories(){
 
-  const matches = structureData.filter(d =>
-    d.Channel===channel.value && d.Group===group.value
-  );
+  const cats = [...new Set(
+    fileData
+      .filter(f =>
+        clean(f.Channel) === clean(channel.value) &&
+        clean(f.Group) === clean(group.value)
+      )
+      .map(f => f.Category)
+  )];
 
-  console.log("Subfolder matches:", matches);
-
-  if(matches.length===0) return;
-
-  const subfolder = matches[0].Subfolder;
-
-  subfolderLabel.innerText = subfolder;
-  categorySection.style.display = "block";
-
-  categoryList = unique("Category",{Channel:channel.value, Group:group.value});
-  console.log("Categories loaded:", categoryList.length);
-
-  populateCategoryDropdown(categoryList);
-}
-
-function populateCategoryDropdown(list){
   category.innerHTML = "<option value=''>Select Category</option>";
-  list.forEach(c=>{
-    category.innerHTML += `<option value="${c}">${c}</option>`;
-  });
+  cats.forEach(c=> category.innerHTML += `<option value="${c}">${c}</option>`);
+
+  results.innerHTML = "";
 }
 
-function filterCategories(){
-  const term = search.value.toLowerCase();
-  const filtered = categoryList.filter(c=>c.toLowerCase().includes(term));
-  populateCategoryDropdown(filtered);
-}
-
-// ================================
-// SHOW FILES
-// ================================
-function clean(val){
-  if(!val) return "";
-  return val.toString().toLowerCase().trim();
-}
-
-function cleanGroup(val){
-  if(!val) return "";
-  const match = val.toString().match(/^(\d+)/);
-  return match ? match[1] : val.toString().trim();
-}
-
+// ================= SHOW FILES =================
 function showFiles(){
 
-  const selectedChannel = clean(channel.value);
-  const selectedGroup = cleanGroup(group.value);
-  const selectedCategory = clean(category.value);
-
-  console.log("Selected filters:", selectedChannel, selectedGroup, selectedCategory);
-
-  const resultsList = fileData.filter(f => {
-
-    const fChannel = clean(f.Channel);
-    const fGroup = cleanGroup(f.Group);
-    const fCategory = clean(f.Category);
-
-    return (
-      fChannel === selectedChannel &&
-      fGroup === selectedGroup &&
-      fCategory === selectedCategory
-    );
-  });
-
-  console.log("Files matched:", resultsList.length);
-  console.log("Sample file row:", fileData[0]);
+  const matches = fileData.filter(f =>
+    clean(f.Channel) === clean(channel.value) &&
+    clean(f.Group) === clean(group.value) &&
+    clean(f.Category) === clean(category.value)
+  );
 
   results.innerHTML = "";
 
-  if(resultsList.length === 0){
+  if(matches.length === 0){
     results.innerHTML = "<div class='card'>No files found</div>";
     return;
   }
 
-  resultsList.forEach(r=>{
+  matches.forEach(r=>{
     results.innerHTML += `
       <div class="card">
-        <a href="${r.Link}" target="_blank">
-          📄 ${r["File Name"] || r.Category}
-        </a>
+        <a href="${r.Link}" target="_blank">📄 ${r.Category}</a>
       </div>
     `;
   });
 }
 
+</script>
 
-
+</body>
+</html>
