@@ -98,7 +98,11 @@ Promise.all([
 
 // ================= CLEAN HELPERS =================
 function clean(v){
-  return (v || "").toString().toLowerCase().trim();
+  return (v || "")
+    .toString()
+    .toLowerCase()
+    .replace(" channel","")   // 👈 strip this out
+    .trim();
 }
 
 // ================= CHANNEL DROPDOWN =================
@@ -208,3 +212,4 @@ function showFiles(){
 
 </body>
 </html>
+
