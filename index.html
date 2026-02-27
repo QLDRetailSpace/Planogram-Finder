@@ -136,10 +136,10 @@ function showFiles(){
 
   matches.forEach(r=>{
     results.innerHTML += `
-      <div class="card">
-        <a href="${r.Link}" target="_blank">📄 ${r.Category}</a>
-      </div>
-    `;
+  <div class="card">
+    <a href="${r.Link}" target="_blank">📄 ${r["File Name"] || r.Category}</a>
+  </div>
+`;
   });
 }
 
@@ -147,3 +147,4 @@ function showFiles(){
 
 </body>
 </html>
+
