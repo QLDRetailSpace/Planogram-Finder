@@ -147,21 +147,39 @@ function parseCSV(text){
 // ================================
 function transformStructure(row){
 
-  const path = row["Full Path"] || row["Full path"] || row["Path"];
+  // 🔍 find the correct column dynamically
+  const pathKey = Object.keys(row).find(k =>
+    k.toLowerCase().includes("path")
+  );
+
+  const path = row[pathKey];
 
   if(!path) return null;
 
-  const parts = path.split("/").map(p => p.trim()).filter(Boolean);
+  const parts = path
+    .split("/")
+    .map(p => p.trim())
+    .filter(p => p !== "");
 
   if(parts.length < 3) return null;
 
-  const channel = parts[0].replace(" Channel","").trim();
+  // CHANNEL
+  let channel = parts[0]
+    .replace(/channel/i, "")
+    .trim()
+    .toUpperCase();
 
-  const groupMatch = parts[1].match(/^(\d+)/);
-  const group = groupMatch ? groupMatch[1] : parts[1];
+  // GROUP (just number)
+  let groupMatch = parts[1].match(/^(\d+)/);
+  let group = groupMatch ? groupMatch[1] : parts[1];
 
-  const category = parts[parts.length - 1];
-  const subfolder = parts.length >= 4 ? parts[parts.length - 2] : "Categories";
+  // CATEGORY = last folder
+  let category = parts[parts.length - 1];
+
+  // SUBFOLDER = second last
+  let subfolder = parts.length >= 4
+    ? parts[parts.length - 2]
+    : "Categories";
 
   return {
     Channel: channel,
@@ -294,4 +312,5 @@ function showFiles(){
     `;
   });
 }
+
 
