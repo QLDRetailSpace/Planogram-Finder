@@ -242,19 +242,44 @@ function filterCategories(){
 // ================================
 // SHOW FILES
 // ================================
+function clean(val){
+  if(!val) return "";
+  return val.toString().toLowerCase().trim();
+}
+
+function cleanGroup(val){
+  if(!val) return "";
+  const match = val.toString().match(/^(\d+)/);
+  return match ? match[1] : val.toString().trim();
+}
+
 function showFiles(){
 
-  const resultsList = fileData.filter(f =>
-    f.Channel===channel.value &&
-    f.Group===group.value &&
-    f.Category===category.value
-  );
+  const selectedChannel = clean(channel.value);
+  const selectedGroup = cleanGroup(group.value);
+  const selectedCategory = clean(category.value);
 
-  console.log("Files found:", resultsList.length);
+  console.log("Selected filters:", selectedChannel, selectedGroup, selectedCategory);
+
+  const resultsList = fileData.filter(f => {
+
+    const fChannel = clean(f.Channel);
+    const fGroup = cleanGroup(f.Group);
+    const fCategory = clean(f.Category);
+
+    return (
+      fChannel === selectedChannel &&
+      fGroup === selectedGroup &&
+      fCategory === selectedCategory
+    );
+  });
+
+  console.log("Files matched:", resultsList.length);
+  console.log("Sample file row:", fileData[0]);
 
   results.innerHTML = "";
 
-  if(resultsList.length===0){
+  if(resultsList.length === 0){
     results.innerHTML = "<div class='card'>No files found</div>";
     return;
   }
@@ -270,7 +295,3 @@ function showFiles(){
   });
 }
 
-</script>
-
-</body>
-</html>
