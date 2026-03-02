@@ -34,6 +34,11 @@ label {
   font-weight:bold;
   color:#0b57d0;
 }
+
+#globalSearch {
+  border: 2px solid #0b57d0;
+  font-weight: bold;
+}
 </style>
 </head>
 
@@ -41,11 +46,27 @@ label {
 
 <h2>Planogram Finder</h2>
 
-<label>Channel</label>
-<select id="channel" onchange="updateGroups()"></select>
+<!-- GLOBAL SEARCH -->
+<label>🔎 Global Search</label>
+<input type="text" id="globalSearch" placeholder="Search all planograms..." onkeyup="runGlobalSearch()">
 
-<label>Group</label>
-<select id="group" onchange="updateCategories()"></select>
+<label>Channel</label>
+<select id="channel" onchange="updateDepartments()"></select>
+
+<label>Search Department</label>
+<input type="text" id="deptSearch" onkeyup="filterDropdown('department','deptSearch')">
+
+<label>Department</label>
+<select id="department" onchange="updateSubDepartments()"></select>
+
+<label>Search Sub-Department</label>
+<input type="text" id="subDeptSearch" onkeyup="filterDropdown('subDepartment','subDeptSearch')">
+
+<label>Sub-Department</label>
+<select id="subDepartment" onchange="updateCategories()"></select>
+
+<label>Search Category</label>
+<input type="text" id="catSearch" onkeyup="filterDropdown('category','catSearch')">
 
 <label>Category</label>
 <select id="category" onchange="showFiles()"></select>
@@ -54,138 +75,101 @@ label {
 
 <script>
 
-// ================= CSV LINKS =================
-const structureURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0R6jVdyfATmBNYLG2bcy4VF-DxWSLvrVFOe9qepHCCph6OCcIUGOwAkiNRn_TSGM-jr8VgjWC8-PU/pub?gid=1122095800&single=true&output=csv";
+// ================= CSV LINK =================
 const fileURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPSHnZioYj2Xdxx0CNi5VYlzlm0OL5aWAnr_eI9rSyboMnznDUyJzYt1DZ0Vret_CRqxO2aP8fDy9y/pub?gid=1791414175&single=true&output=csv";
 
-let structureData = [];
 let fileData = [];
 
 // ================= CSV PARSER =================
 function parseCSV(text){
   const rows = text.trim().split("\n");
-
-  const headers = rows[0]
-    .split(",")
-    .map(h => h.replace(/^\uFEFF/, "").trim());
+  const headers = rows[0].split(",").map(h => h.replace(/^\uFEFF/, "").trim());
 
   return rows.slice(1).map(row => {
     const values = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
-
     let obj = {};
-    headers.forEach((h,i)=>{
-      obj[h] = values ? values[i]?.replace(/"/g,"") : "";
-    });
-
+    headers.forEach((h,i)=> obj[h] = values[i]?.replace(/"/g,""));
     return obj;
   });
 }
 
-// ================= LOAD DATA =================
-Promise.all([
-  fetch(structureURL).then(r => r.text()),
-  fetch(fileURL).then(r => r.text())
-]).then(([s1, s2]) => {
-
-  const structureRaw = parseCSV(s1);
-  const fileRaw = parseCSV(s2);
-
-  structureData = structureRaw;
-  fileData = fileRaw;
-
+// ================= LOAD =================
+fetch(fileURL)
+.then(r => r.text())
+.then(text => {
+  fileData = parseCSV(text);
   initChannels();
 });
 
-// ================= CLEAN HELPERS =================
-function clean(v){
-  return (v || "")
-    .toString()
-    .toLowerCase()
-    .replace(" channel","")   // 👈 strip this out
-    .trim();
-}
+// ================= CLEAN =================
+function clean(v){ return (v||"").toString().toLowerCase().trim(); }
 
-// ================= CHANNEL DROPDOWN =================
+// ================= CHANNEL =================
 function initChannels(){
-
-  const keys = Object.keys(fileData[0]);
-  const channelKey = keys.find(k => k.toLowerCase().includes("channel"));
-
-  const channels = [...new Set(fileData.map(r => r[channelKey]))];
-
+  const vals = [...new Set(fileData.map(r => r["Channel"]))];
   channel.innerHTML = "<option value=''>Select Channel</option>";
-
-  channels.forEach(c => {
-    channel.innerHTML += `<option value="${c}">${c}</option>`;
-  });
+  vals.forEach(v => channel.innerHTML += `<option>${v}</option>`);
 }
 
-// ================= GROUP DROPDOWN =================
-function updateGroups(){
-
-  const keys = Object.keys(fileData[0]);
-  const channelKey = keys.find(k => k.toLowerCase().includes("channel"));
-  const groupKey   = keys.find(k => k.toLowerCase().includes("group"));
-
-  const groups = [...new Set(
+// ================= DEPARTMENT =================
+function updateDepartments(){
+  const vals = [...new Set(
     fileData
-      .filter(r => clean(r[channelKey]) === clean(channel.value))
-      .map(r => r[groupKey])
+      .filter(r => clean(r["Channel"]) === clean(channel.value))
+      .map(r => r["Department"])
   )];
 
-  group.innerHTML = "<option value=''>Select Group</option>";
+  department.innerHTML = "<option value=''>Select Department</option>";
+  vals.forEach(v => department.innerHTML += `<option>${v}</option>`);
 
-  groups.forEach(g=>{
-    group.innerHTML += `<option value="${g}">${g}</option>`;
-  });
+  subDepartment.innerHTML = "";
+  category.innerHTML = "";
+  results.innerHTML = "";
+}
+
+// ================= SUB-DEPARTMENT =================
+function updateSubDepartments(){
+  const vals = [...new Set(
+    fileData
+      .filter(r =>
+        clean(r["Channel"]) === clean(channel.value) &&
+        clean(r["Department"]) === clean(department.value)
+      )
+      .map(r => r["Sub-Department"])
+  )];
+
+  subDepartment.innerHTML = "<option value=''>Select Sub-Department</option>";
+  vals.forEach(v => subDepartment.innerHTML += `<option>${v}</option>`);
 
   category.innerHTML = "";
   results.innerHTML = "";
 }
 
-// ================= CATEGORY DROPDOWN =================
+// ================= CATEGORY =================
 function updateCategories(){
-
-  const keys = Object.keys(fileData[0]);
-  const channelKey  = keys.find(k => k.toLowerCase().includes("channel"));
-  const groupKey    = keys.find(k => k.toLowerCase().includes("group"));
-  const categoryKey = keys.find(k => k.toLowerCase().includes("category"));
-
-  const categories = [...new Set(
+  const vals = [...new Set(
     fileData
       .filter(r =>
-        clean(r[channelKey]) === clean(channel.value) &&
-        clean(r[groupKey]) === clean(group.value)
+        clean(r["Channel"]) === clean(channel.value) &&
+        clean(r["Department"]) === clean(department.value) &&
+        clean(r["Sub-Department"]) === clean(subDepartment.value)
       )
-      .map(r => r[categoryKey])
+      .map(r => r["Category"])
   )];
 
   category.innerHTML = "<option value=''>Select Category</option>";
-
-  categories.forEach(c=>{
-    category.innerHTML += `<option value="${c}">${c}</option>`;
-  });
+  vals.forEach(v => category.innerHTML += `<option>${v}</option>`);
 
   results.innerHTML = "";
 }
 
 // ================= SHOW FILES =================
 function showFiles(){
-
-  if(fileData.length === 0) return;
-
-  const keys = Object.keys(fileData[0]);
-
-  const channelKey   = keys.find(k => k.toLowerCase().includes("channel"));
-  const groupKey     = keys.find(k => k.toLowerCase().includes("group"));
-  const categoryKey  = keys.find(k => k.toLowerCase().includes("category"));
-  const linkKey      = keys.find(k => k.toLowerCase().includes("link"));
-  const fileNameKey  = keys.find(k => k.toLowerCase().includes("file"));
-
   const matches = fileData.filter(r =>
-    clean(r[channelKey]) === clean(channel.value) &&
-    clean(r[groupKey]) === clean(group.value) &&
-    clean(r[categoryKey]) === clean(category.value)
+    clean(r["Channel"]) === clean(channel.value) &&
+    clean(r["Department"]) === clean(department.value) &&
+    clean(r["Sub-Department"]) === clean(subDepartment.value) &&
+    clean(r["Category"]) === clean(category.value)
   );
 
   results.innerHTML = "";
@@ -196,20 +180,71 @@ function showFiles(){
   }
 
   matches.forEach(r => {
-    const displayName = r[fileNameKey] || r[categoryKey];
-
     results.innerHTML += `
       <div class="card">
-        <a href="${r[linkKey]}" target="_blank">
-          📄 ${displayName}
+        <a href="${r["Link"]}" target="_blank">
+          📄 ${r["File Name"]}
         </a>
       </div>
     `;
   });
 }
 
+// ================= GLOBAL SEARCH =================
+function runGlobalSearch(){
+
+  const term = clean(document.getElementById("globalSearch").value);
+
+  if(term.length < 2){
+    results.innerHTML = "";
+    return;
+  }
+
+  const matches = fileData.filter(r => {
+
+    const text =
+      clean(r["File Name"]) + " " +
+      clean(r["Category"]) + " " +
+      clean(r["Sub-Department"]) + " " +
+      clean(r["Department"]) + " " +
+      clean(r["Channel"]);
+
+    return text.includes(term);
+  });
+
+  results.innerHTML = "";
+
+  if(matches.length === 0){
+    results.innerHTML = "<div class='card'>No results found</div>";
+    return;
+  }
+
+  matches.slice(0,50).forEach(r => {
+    results.innerHTML += `
+      <div class="card">
+        <a href="${r["Link"]}" target="_blank">
+          📄 ${r["File Name"]}
+          <br>
+          <small>${r["Department"]} → ${r["Sub-Department"]} → ${r["Category"]}</small>
+        </a>
+      </div>
+    `;
+  });
+
+}
+
+// ================= FILTER DROPDOWNS =================
+function filterDropdown(selectId, inputId){
+  const input = document.getElementById(inputId).value.toLowerCase();
+  const select = document.getElementById(selectId);
+
+  for (let i = 0; i < select.options.length; i++) {
+    const txt = select.options[i].text.toLowerCase();
+    select.options[i].style.display = txt.includes(input) ? "" : "none";
+  }
+}
+
 </script>
 
 </body>
 </html>
-
