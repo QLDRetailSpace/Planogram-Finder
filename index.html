@@ -46,27 +46,18 @@ label {
 
 <h2>Planogram Finder</h2>
 
-<!-- GLOBAL SEARCH -->
+<!-- GLOBAL SEARCH ONLY -->
 <label>🔎 Global Search</label>
 <input type="text" id="globalSearch" placeholder="Search all planograms..." onkeyup="runGlobalSearch()">
 
 <label>Channel</label>
 <select id="channel" onchange="updateDepartments()"></select>
 
-<label>Search Department</label>
-<input type="text" id="deptSearch" onkeyup="filterDropdown('department','deptSearch')">
-
 <label>Department</label>
 <select id="department" onchange="updateSubDepartments()"></select>
 
-<label>Search Sub-Department</label>
-<input type="text" id="subDeptSearch" onkeyup="filterDropdown('subDepartment','subDeptSearch')">
-
 <label>Sub-Department</label>
 <select id="subDepartment" onchange="updateCategories()"></select>
-
-<label>Search Category</label>
-<input type="text" id="catSearch" onkeyup="filterDropdown('category','catSearch')">
 
 <label>Category</label>
 <select id="category" onchange="showFiles()"></select>
@@ -231,17 +222,6 @@ function runGlobalSearch(){
     `;
   });
 
-}
-
-// ================= FILTER DROPDOWNS =================
-function filterDropdown(selectId, inputId){
-  const input = document.getElementById(inputId).value.toLowerCase();
-  const select = document.getElementById(selectId);
-
-  for (let i = 0; i < select.options.length; i++) {
-    const txt = select.options[i].text.toLowerCase();
-    select.options[i].style.display = txt.includes(input) ? "" : "none";
-  }
 }
 
 </script>
