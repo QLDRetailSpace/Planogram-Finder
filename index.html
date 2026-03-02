@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Planogram Finder</title>
+<title>QLD Metcash - Planogram Directory</title>
 
 <style>
 body { font-family: Arial; padding: 15px; background:#f4f6f8; }
@@ -46,7 +46,6 @@ label {
 
 <h2>QLD Metcash - Planogram Directory</h2>
 
-<!-- GLOBAL SEARCH ONLY -->
 <label>🔎 Search All planograms</label>
 <input type="text" id="globalSearch" placeholder="Search all planograms..." onkeyup="runGlobalSearch()">
 
@@ -67,7 +66,7 @@ label {
 <script>
 
 // ================= CSV LINK =================
-const fileURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPSHnZioYj2Xdxx0CNi5VYlzlm0OL5aWAnr_eI9rSyboMnznDUyJzYt1DZ0Vret_CRqxO2aP8fDy9y/pub?output=csv";
+const fileURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPSHnZioYj2Xdxx0CNi5VYlzlm0OL5aWAnr_eI9rSyboMnznDUyJzYt1DZ0Vret_CRqxO2aP8fDy9y/pub?gid=1791414175&single=true&output=csv";
 
 let fileData = [];
 
@@ -92,22 +91,40 @@ fetch(fileURL)
   initChannels();
 });
 
+// ================= HEADER KEY DETECTION =================
+function getKeys(){
+  const keys = Object.keys(fileData[0]);
+
+  return {
+    channel: keys.find(k => k.toLowerCase().includes("channel")),
+    department: keys.find(k => k.toLowerCase().includes("department") && !k.toLowerCase().includes("sub")),
+    subDepartment: keys.find(k => k.toLowerCase().includes("sub")),
+    category: keys.find(k => k.toLowerCase().includes("category")),
+    file: keys.find(k => k.toLowerCase().includes("file")),
+    link: keys.find(k => k.toLowerCase().includes("link"))
+  };
+}
+
 // ================= CLEAN =================
 function clean(v){ return (v||"").toString().toLowerCase().trim(); }
 
 // ================= CHANNEL =================
 function initChannels(){
-  const vals = [...new Set(fileData.map(r => r["Channel"]))];
+  const k = getKeys();
+  const vals = [...new Set(fileData.map(r => r[k.channel]))];
+
   channel.innerHTML = "<option value=''>Select Channel</option>";
   vals.forEach(v => channel.innerHTML += `<option>${v}</option>`);
 }
 
 // ================= DEPARTMENT =================
 function updateDepartments(){
+  const k = getKeys();
+
   const vals = [...new Set(
     fileData
-      .filter(r => clean(r["Channel"]) === clean(channel.value))
-      .map(r => r["Department"])
+      .filter(r => clean(r[k.channel]) === clean(channel.value))
+      .map(r => r[k.department])
   )];
 
   department.innerHTML = "<option value=''>Select Department</option>";
@@ -120,13 +137,15 @@ function updateDepartments(){
 
 // ================= SUB-DEPARTMENT =================
 function updateSubDepartments(){
+  const k = getKeys();
+
   const vals = [...new Set(
     fileData
       .filter(r =>
-        clean(r["Channel"]) === clean(channel.value) &&
-        clean(r["Department"]) === clean(department.value)
+        clean(r[k.channel]) === clean(channel.value) &&
+        clean(r[k.department]) === clean(department.value)
       )
-      .map(r => r["Sub-Department"])
+      .map(r => r[k.subDepartment])
   )];
 
   subDepartment.innerHTML = "<option value=''>Select Sub-Department</option>";
@@ -138,14 +157,16 @@ function updateSubDepartments(){
 
 // ================= CATEGORY =================
 function updateCategories(){
+  const k = getKeys();
+
   const vals = [...new Set(
     fileData
       .filter(r =>
-        clean(r["Channel"]) === clean(channel.value) &&
-        clean(r["Department"]) === clean(department.value) &&
-        clean(r["Sub-Department"]) === clean(subDepartment.value)
+        clean(r[k.channel]) === clean(channel.value) &&
+        clean(r[k.department]) === clean(department.value) &&
+        clean(r[k.subDepartment]) === clean(subDepartment.value)
       )
-      .map(r => r["Category"])
+      .map(r => r[k.category])
   )];
 
   category.innerHTML = "<option value=''>Select Category</option>";
@@ -156,11 +177,13 @@ function updateCategories(){
 
 // ================= SHOW FILES =================
 function showFiles(){
+  const k = getKeys();
+
   const matches = fileData.filter(r =>
-    clean(r["Channel"]) === clean(channel.value) &&
-    clean(r["Department"]) === clean(department.value) &&
-    clean(r["Sub-Department"]) === clean(subDepartment.value) &&
-    clean(r["Category"]) === clean(category.value)
+    clean(r[k.channel]) === clean(channel.value) &&
+    clean(r[k.department]) === clean(department.value) &&
+    clean(r[k.subDepartment]) === clean(subDepartment.value) &&
+    clean(r[k.category]) === clean(category.value)
   );
 
   results.innerHTML = "";
@@ -173,8 +196,8 @@ function showFiles(){
   matches.forEach(r => {
     results.innerHTML += `
       <div class="card">
-        <a href="${r["Link"]}" target="_blank">
-          📄 ${r["File Name"]}
+        <a href="${r[k.link]}" target="_blank">
+          📄 ${r[k.file]}
         </a>
       </div>
     `;
@@ -184,6 +207,7 @@ function showFiles(){
 // ================= GLOBAL SEARCH =================
 function runGlobalSearch(){
 
+  const k = getKeys();
   const term = clean(document.getElementById("globalSearch").value);
 
   if(term.length < 2){
@@ -194,11 +218,11 @@ function runGlobalSearch(){
   const matches = fileData.filter(r => {
 
     const text =
-      clean(r["File Name"]) + " " +
-      clean(r["Category"]) + " " +
-      clean(r["Sub-Department"]) + " " +
-      clean(r["Department"]) + " " +
-      clean(r["Channel"]);
+      clean(r[k.file]) + " " +
+      clean(r[k.category]) + " " +
+      clean(r[k.subDepartment]) + " " +
+      clean(r[k.department]) + " " +
+      clean(r[k.channel]);
 
     return text.includes(term);
   });
@@ -213,10 +237,10 @@ function runGlobalSearch(){
   matches.slice(0,50).forEach(r => {
     results.innerHTML += `
       <div class="card">
-        <a href="${r["Link"]}" target="_blank">
-          📄 ${r["File Name"]}
+        <a href="${r[k.link]}" target="_blank">
+          📄 ${r[k.file]}
           <br>
-          <small>${r["Department"]} → ${r["Sub-Department"]} → ${r["Category"]}</small>
+          <small>${r[k.department]} → ${r[k.subDepartment]} → ${r[k.category]}</small>
         </a>
       </div>
     `;
@@ -228,6 +252,3 @@ function runGlobalSearch(){
 
 </body>
 </html>
-
-
-
