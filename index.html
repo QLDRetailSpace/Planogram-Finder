@@ -5,23 +5,69 @@
 <title>QLD Metcash - Planogram Directory</title>
 
 <style>
-body { font-family: Arial; padding: 15px; background:#f4f6f8; }
 
-select, input {
+body{
+  font-family: Arial;
+  margin:0;
+  background:#f4f6f8;
+}
+
+/* HEADER */
+
+.header{
+  background:#0b57d0;
+  color:white;
+  padding:18px 20px;
+  box-shadow:0 3px 6px rgba(0,0,0,0.15);
+}
+
+.header-inner{
+  max-width:1000px;
+  margin:auto;
+  display:flex;
+  align-items:center;
+  gap:15px;
+}
+
+.header img{
+  height:50px;
+  border-radius:6px;
+}
+
+.header h1{
+  font-size:20px;
+  margin:0;
+  font-weight:600;
+}
+
+/* PAGE CONTENT */
+
+.container{
+  max-width:1000px;
+  margin:auto;
+  padding:20px;
+}
+
+/* INPUTS */
+
+select, input{
   width:100%;
   padding:12px;
   margin:6px 0;
   border-radius:8px;
   border:1px solid #ccc;
+  font-size:14px;
 }
 
-label {
+label{
   font-weight:bold;
-  margin-top:10px;
+  margin-top:12px;
   display:block;
 }
 
-.card {
+/* CARDS */
+
+.card{
   background:#fff;
   padding:14px;
   margin-top:10px;
@@ -29,24 +75,49 @@ label {
   box-shadow:0 2px 5px rgba(0,0,0,0.08);
 }
 
-.card a {
+.card a{
   text-decoration:none;
   font-weight:bold;
   color:#0b57d0;
 }
 
-#globalSearch {
-  border: 2px solid #0b57d0;
-  font-weight: bold;
+/* GLOBAL SEARCH */
+
+#globalSearch{
+  border:2px solid #0b57d0;
+  font-weight:bold;
 }
+
+/* MOBILE */
+
+@media (max-width:600px){
+
+  .header-inner{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .header img{
+    height:40px;
+  }
+
+}
+
 </style>
 </head>
 
 <body>
 
-<h2>QLD Metcash - Planogram Directory</h2>
+<div class="header">
+  <div class="header-inner">
+    <img src="https://drive.google.com/uc?export=view&id=12wy3gsnLKCWolNeEoe3tz8yup58l6myN">
+    <h1>QLD Metcash Planogram Directory</h1>
+  </div>
+</div>
 
-<label>🔎 Search All planograms</label>
+<div class="container">
+
+<label>🔎 Search All Planograms</label>
 <input type="text" id="globalSearch" placeholder="Search all planograms..." onkeyup="runGlobalSearch()">
 
 <label>Channel</label>
@@ -62,6 +133,8 @@ label {
 <select id="category" onchange="showFiles()"></select>
 
 <div id="results"></div>
+
+</div>
 
 <script>
 
