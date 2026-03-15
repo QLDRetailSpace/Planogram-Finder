@@ -6,8 +6,6 @@
 
 <style>
 
-<style>
-
 * {
   box-sizing: border-box;
 }
@@ -23,35 +21,54 @@ body{
 .header{
   background:#0b57d0;
   color:white;
-  padding:18px 20px;
   box-shadow:0 3px 6px rgba(0,0,0,0.15);
 }
 
 .header-inner{
-  max-width:1000px;
+  max-width:1100px;
   margin:auto;
   display:flex;
   align-items:center;
-  gap:15px;
+  gap:20px;
+  padding:14px 20px;
 }
 
+/* LOGO */
+
 .header img{
-  height:50px;
-  border-radius:6px;
+  height:60px;
+  object-fit:contain;
 }
+
+/* TITLE */
 
 .header h1{
   font-size:20px;
   margin:0;
   font-weight:600;
+  flex-grow:1;
+}
+
+/* HEADER SEARCH */
+
+.header-search{
+  width:320px;
+}
+
+.header-search input{
+  width:100%;
+  padding:10px 12px;
+  border-radius:8px;
+  border:none;
+  font-size:14px;
 }
 
 /* PAGE CONTENT */
 
 .container{
-  max-width:1000px;
+  max-width:1100px;
   margin:auto;
-  padding:20px;
+  padding:25px 20px;
 }
 
 /* INPUTS */
@@ -87,24 +104,21 @@ label{
   color:#0b57d0;
 }
 
-/* GLOBAL SEARCH */
-
-#globalSearch{
-  border:2px solid #0b57d0;
-  font-weight:bold;
-}
-
 /* MOBILE */
 
-@media (max-width:600px){
+@media (max-width:700px){
 
   .header-inner{
     flex-direction:column;
     align-items:flex-start;
   }
 
+  .header-search{
+    width:100%;
+  }
+
   .header img{
-    height:40px;
+    height:50px;
   }
 
 }
@@ -116,15 +130,19 @@ label{
 
 <div class="header">
   <div class="header-inner">
+
     <img src="https://lh3.googleusercontent.com/d/12wy3gsnLKCWolNeEoe3tz8yup58l6myN">
+
     <h1>QLD Metcash Planogram Directory</h1>
+
+    <div class="header-search">
+      <input type="text" id="globalSearch" placeholder="🔎 Search all planograms..." onkeyup="runGlobalSearch()">
+    </div>
+
   </div>
 </div>
 
 <div class="container">
-
-<label>🔎 Search All Planograms</label>
-<input type="text" id="globalSearch" placeholder="Search all planograms..." onkeyup="runGlobalSearch()">
 
 <label>Channel</label>
 <select id="channel" onchange="updateDepartments()"></select>
@@ -331,5 +349,3 @@ function runGlobalSearch(){
 
 </body>
 </html>
-
-
