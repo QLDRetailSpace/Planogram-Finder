@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QLD Metcash - Planogram Directory</title>
+<title>QLD Metcash - Planograms</title>
 
 <style>
 
@@ -61,11 +61,15 @@ margin:auto;
 padding:25px 20px;
 }
 
-/* BREADCRUMB */
+/* BREADCRUMB PANEL */
 
 .breadcrumb{
-margin-bottom:15px;
 font-size:14px;
+margin-bottom:18px;
+padding:10px 14px;
+background:#fff;
+border-radius:8px;
+box-shadow:0 1px 3px rgba(0,0,0,0.12);
 }
 
 .breadcrumb span{
@@ -110,6 +114,11 @@ font-weight:bold;
 color:#0b57d0;
 }
 
+.result-nav{
+margin-top:6px;
+font-size:13px;
+}
+
 .result-nav span{
 cursor:pointer;
 color:#0b57d0;
@@ -117,6 +126,25 @@ color:#0b57d0;
 
 .result-nav span:hover{
 text-decoration:underline;
+}
+
+/* MOBILE */
+
+@media (max-width:700px){
+
+.header-inner{
+flex-direction:column;
+align-items:flex-start;
+}
+
+.header-search{
+width:100%;
+}
+
+.header img{
+height:80px;
+}
+
 }
 
 </style>
@@ -129,7 +157,7 @@ text-decoration:underline;
 
 <img src="https://lh3.googleusercontent.com/d/12wy3gsnLKCWolNeEoe3tz8yup58l6myN">
 
-<h1>QLD Metcash Planogram Directory</h1>
+<h1>QLD Metcash Planograms</h1>
 
 <div class="header-search">
 <input type="text" id="globalSearch" placeholder="🔎 Search planograms..." onkeyup="runGlobalSearch()">
@@ -169,6 +197,7 @@ fetch(fileURL)
 .then(text=>{
 fileData=parseCSV(text)
 initChannels()
+updateBreadcrumb()
 })
 
 function parseCSV(text){
@@ -204,34 +233,46 @@ link:keys.find(k=>k.toLowerCase().includes("link"))
 
 }
 
-/* SET FILTERS FROM LINKS */
+/* RESET ALL */
 
-function setFilters(ch, dep, sub, cat){
+function resetAll(){
 
-// CHANNEL
-channel.value = ch
+channel.value=""
+department.innerHTML=""
+subDepartment.innerHTML=""
+category.innerHTML=""
+results.innerHTML=""
+
+initChannels()
+updateBreadcrumb()
+
+}
+
+/* SET FILTERS */
+
+function setFilters(ch,dep,sub,cat){
+
+channel.value=ch
 updateDepartments()
 
-// DEPARTMENT
 if(dep){
-department.value = dep
+department.value=dep
 updateSubDepartments()
 }else{
+updateBreadcrumb()
 return
 }
 
-// SUB-DEPARTMENT
 if(sub){
-subDepartment.value = sub
+subDepartment.value=sub
 updateCategories()
 }else{
 updateBreadcrumb()
 return
 }
 
-// CATEGORY
 if(cat){
-category.value = cat
+category.value=cat
 showFiles()
 }else{
 updateBreadcrumb()
@@ -243,19 +284,23 @@ updateBreadcrumb()
 
 function updateBreadcrumb(){
 
-let html=""
+let html=`<span onclick="resetAll()">Home</span>`
 
-if(channel.value)
-html+=`<span onclick="setFilters('${channel.value}','','','')">${channel.value}</span>`
+if(channel.value){
+html+=` → <span onclick="setFilters('${channel.value}','','','')">${channel.value}</span>`
+}
 
-if(department.value)
+if(department.value){
 html+=` → <span onclick="setFilters('${channel.value}','${department.value}','','')">${department.value}</span>`
+}
 
-if(subDepartment.value)
+if(subDepartment.value){
 html+=` → <span onclick="setFilters('${channel.value}','${department.value}','${subDepartment.value}','')">${subDepartment.value}</span>`
+}
 
-if(category.value)
+if(category.value){
 html+=` → ${category.value}`
+}
 
 breadcrumb.innerHTML=html
 
@@ -314,7 +359,7 @@ updateBreadcrumb()
 
 }
 
-/* SUBDEPARTMENT */
+/* SUB DEPARTMENT */
 
 function updateSubDepartments(){
 
@@ -430,7 +475,7 @@ updateBreadcrumb()
 
 }
 
-/* GLOBAL SEARCH */
+/* SEARCH */
 
 function runGlobalSearch(){
 
