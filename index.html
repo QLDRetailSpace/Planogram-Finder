@@ -34,7 +34,6 @@ flex-wrap:wrap;
 
 .header img{
 height:120px;
-object-fit:contain;
 }
 
 .header h1{
@@ -49,10 +48,9 @@ width:320px;
 
 .header-search input{
 width:100%;
-padding:10px 12px;
+padding:10px;
 border-radius:8px;
 border:none;
-font-size:14px;
 }
 
 /* PAGE */
@@ -66,14 +64,13 @@ padding:25px 20px;
 /* BREADCRUMB */
 
 .breadcrumb{
-font-size:14px;
 margin-bottom:15px;
-color:#555;
+font-size:14px;
 }
 
 .breadcrumb span{
-cursor:pointer;
 color:#0b57d0;
+cursor:pointer;
 }
 
 .breadcrumb span:hover{
@@ -113,23 +110,13 @@ font-weight:bold;
 color:#0b57d0;
 }
 
-/* MOBILE */
-
-@media (max-width:700px){
-
-.header-inner{
-flex-direction:column;
-align-items:flex-start;
+.result-nav span{
+cursor:pointer;
+color:#0b57d0;
 }
 
-.header-search{
-width:100%;
-}
-
-.header img{
-height:80px;
-}
-
+.result-nav span:hover{
+text-decoration:underline;
 }
 
 </style>
@@ -177,11 +164,17 @@ const fileURL="https://docs.google.com/spreadsheets/d/e/2PACX-1vRPSHnZioYj2Xdxx0
 
 let fileData=[]
 
-// CSV PARSER
+fetch(fileURL)
+.then(r=>r.text())
+.then(text=>{
+fileData=parseCSV(text)
+initChannels()
+})
+
 function parseCSV(text){
 
 const rows=text.trim().split("\n")
-const headers=rows[0].split(",").map(h=>h.replace(/^\uFEFF/,"").trim())
+const headers=rows[0].split(",").map(h=>h.trim())
 
 return rows.slice(1).map(row=>{
 const values=row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
@@ -192,15 +185,10 @@ return obj
 
 }
 
-// LOAD DATA
-fetch(fileURL)
-.then(r=>r.text())
-.then(text=>{
-fileData=parseCSV(text)
-initChannels()
-})
+function clean(v){
+return(v||"").toString().toLowerCase().trim()
+}
 
-// GET COLUMN KEYS
 function getKeys(){
 
 const keys=Object.keys(fileData[0])
@@ -216,7 +204,25 @@ link:keys.find(k=>k.toLowerCase().includes("link"))
 
 }
 
-function clean(v){return(v||"").toString().toLowerCase().trim()}
+/* SET FILTERS FROM LINKS */
+
+function setFilters(ch,dep,sub,cat){
+
+channel.value=ch
+updateDepartments()
+
+department.value=dep
+updateSubDepartments()
+
+subDepartment.value=sub
+updateCategories()
+
+if(cat){
+category.value=cat
+showFiles()
+}
+
+}
 
 /* BREADCRUMB */
 
@@ -225,39 +231,18 @@ function updateBreadcrumb(){
 let html=""
 
 if(channel.value)
-html+=`<span onclick="resetTo('channel')">${channel.value}</span>`
+html+=`<span onclick="setFilters('${channel.value}','','','')">${channel.value}</span>`
 
 if(department.value)
-html+=` → <span onclick="resetTo('department')">${department.value}</span>`
+html+=` → <span onclick="setFilters('${channel.value}','${department.value}','','')">${department.value}</span>`
 
 if(subDepartment.value)
-html+=` → <span onclick="resetTo('subDepartment')">${subDepartment.value}</span>`
+html+=` → <span onclick="setFilters('${channel.value}','${department.value}','${subDepartment.value}','')">${subDepartment.value}</span>`
 
 if(category.value)
 html+=` → ${category.value}`
 
 breadcrumb.innerHTML=html
-
-}
-
-function resetTo(level){
-
-if(level==="channel"){
-channel.value=""
-updateDepartments()
-}
-
-if(level==="department"){
-department.value=""
-updateSubDepartments()
-}
-
-if(level==="subDepartment"){
-subDepartment.value=""
-updateCategories()
-}
-
-updateBreadcrumb()
 
 }
 
@@ -298,7 +283,7 @@ department.innerHTML="<option value=''>Select Department</option>"
 vals.forEach(v=>{
 
 const count=fileData.filter(r=>
-clean(r[k.channel])===clean(channel.value) &&
+clean(r[k.channel])===clean(channel.value)&&
 clean(r[k.department])===clean(v)
 ).length
 
@@ -314,7 +299,7 @@ updateBreadcrumb()
 
 }
 
-/* SUB DEPARTMENT */
+/* SUBDEPARTMENT */
 
 function updateSubDepartments(){
 
@@ -323,7 +308,7 @@ const k=getKeys()
 const vals=[...new Set(
 fileData
 .filter(r=>
-clean(r[k.channel])===clean(channel.value) &&
+clean(r[k.channel])===clean(channel.value)&&
 clean(r[k.department])===clean(department.value)
 )
 .map(r=>r[k.subDepartment])
@@ -334,8 +319,8 @@ subDepartment.innerHTML="<option value=''>Select Sub-Department</option>"
 vals.forEach(v=>{
 
 const count=fileData.filter(r=>
-clean(r[k.channel])===clean(channel.value) &&
-clean(r[k.department])===clean(department.value) &&
+clean(r[k.channel])===clean(channel.value)&&
+clean(r[k.department])===clean(department.value)&&
 clean(r[k.subDepartment])===clean(v)
 ).length
 
@@ -359,8 +344,8 @@ const k=getKeys()
 const vals=[...new Set(
 fileData
 .filter(r=>
-clean(r[k.channel])===clean(channel.value) &&
-clean(r[k.department])===clean(department.value) &&
+clean(r[k.channel])===clean(channel.value)&&
+clean(r[k.department])===clean(department.value)&&
 clean(r[k.subDepartment])===clean(subDepartment.value)
 )
 .map(r=>r[k.category])
@@ -371,9 +356,9 @@ category.innerHTML="<option value=''>Select Category</option>"
 vals.forEach(v=>{
 
 const count=fileData.filter(r=>
-clean(r[k.channel])===clean(channel.value) &&
-clean(r[k.department])===clean(department.value) &&
-clean(r[k.subDepartment])===clean(subDepartment.value) &&
+clean(r[k.channel])===clean(channel.value)&&
+clean(r[k.department])===clean(department.value)&&
+clean(r[k.subDepartment])===clean(subDepartment.value)&&
 clean(r[k.category])===clean(v)
 ).length
 
@@ -394,27 +379,36 @@ function showFiles(){
 const k=getKeys()
 
 const matches=fileData.filter(r=>
-clean(r[k.channel])===clean(channel.value) &&
-clean(r[k.department])===clean(department.value) &&
-clean(r[k.subDepartment])===clean(subDepartment.value) &&
+clean(r[k.channel])===clean(channel.value)&&
+clean(r[k.department])===clean(department.value)&&
+clean(r[k.subDepartment])===clean(subDepartment.value)&&
 clean(r[k.category])===clean(category.value)
 )
 
 results.innerHTML=""
 
-if(matches.length===0){
-results.innerHTML="<div class='card'>No files found</div>"
-return
-}
-
 matches.forEach(r=>{
+
 results.innerHTML+=`
 <div class="card">
+
 <a href="${r[k.link]}" target="_blank">
 📄 ${r[k.file]}
 </a>
+
+<div class="result-nav">
+
+<span onclick="setFilters('${r[k.channel]}','${r[k.department]}','','')">${r[k.department]}</span>
+ →
+<span onclick="setFilters('${r[k.channel]}','${r[k.department]}','${r[k.subDepartment]}','')">${r[k.subDepartment]}</span>
+ →
+<span onclick="setFilters('${r[k.channel]}','${r[k.department]}','${r[k.subDepartment]}','${r[k.category]}')">${r[k.category]}</span>
+
+</div>
+
 </div>
 `
+
 })
 
 updateBreadcrumb()
@@ -449,10 +443,21 @@ matches.slice(0,50).forEach(r=>{
 
 results.innerHTML+=`
 <div class="card">
+
 <a href="${r[k.link]}" target="_blank">
-📄 ${r[k.file]}<br>
-<small>${r[k.department]} → ${r[k.subDepartment]} → ${r[k.category]}</small>
+📄 ${r[k.file]}
 </a>
+
+<div class="result-nav">
+
+<span onclick="setFilters('${r[k.channel]}','${r[k.department]}','','')">${r[k.department]}</span>
+ →
+<span onclick="setFilters('${r[k.channel]}','${r[k.department]}','${r[k.subDepartment]}','')">${r[k.subDepartment]}</span>
+ →
+<span onclick="setFilters('${r[k.channel]}','${r[k.department]}','${r[k.subDepartment]}','${r[k.category]}')">${r[k.category]}</span>
+
+</div>
+
 </div>
 `
 
