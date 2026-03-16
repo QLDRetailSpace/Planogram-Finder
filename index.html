@@ -206,20 +206,35 @@ link:keys.find(k=>k.toLowerCase().includes("link"))
 
 /* SET FILTERS FROM LINKS */
 
-function setFilters(ch,dep,sub,cat){
+function setFilters(ch, dep, sub, cat){
 
-channel.value=ch
+// CHANNEL
+channel.value = ch
 updateDepartments()
 
-department.value=dep
+// DEPARTMENT
+if(dep){
+department.value = dep
 updateSubDepartments()
+}else{
+return
+}
 
-subDepartment.value=sub
+// SUB-DEPARTMENT
+if(sub){
+subDepartment.value = sub
 updateCategories()
+}else{
+updateBreadcrumb()
+return
+}
 
+// CATEGORY
 if(cat){
-category.value=cat
+category.value = cat
 showFiles()
+}else{
+updateBreadcrumb()
 }
 
 }
